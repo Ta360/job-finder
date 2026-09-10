@@ -16,6 +16,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- optional auth gate --------------------------------------------------
+// When REQUIRE_AUTH=1 (set in the cloud), every request must carry an
+// Azure Container Apps "Easy Auth" signed-in principal. ALLOWED_EMAILS
+// (comma-separated) further restricts to specific accounts. Locally these
+// are unset, so the app is wide open on localhost as before.
+const REQUIRE_AUTH = process.env.REQUIRE_AUTH === '1';
+const ALLOWED_EMAILS = (process.env.ALLOWED_EMAILS || '')
+  .toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+
+app.get('/api/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
+
+if (REQUIRE_AUTH) {
+  app.use((req, res, next) => {
+    const email = String(req.headers['x-ms-client-principal-name'] || '').toLowerCase();
+    if (!email) return res.status(401).json({ error: 'authentication required' });
+    if (ALLOWED_EMAILS.length && !ALLOWED_EMAILS.includes(email)) {
+      return res.status(403).json({ error: `${email} is not authorised for this app` });
+    }
+    req.userEmail = email;
+    next();
+  });
+}
+
 const wrap = (fn) => (req, res) => {
   try {
     fn(req, res);
@@ -24,8 +47,6 @@ const wrap = (fn) => (req, res) => {
     res.status(400).json({ error: String(e.message || e) });
   }
 };
-
-app.get('/api/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
 // --- applications ------------------------------------------------------
 app.get('/api/applications', wrap((_req, res) => res.json(Applications.all())));
