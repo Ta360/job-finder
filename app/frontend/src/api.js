@@ -25,6 +25,13 @@ export const api = {
   deleteEvent: (id) => req(`/api/events/${id}`, { method: 'DELETE' }),
   importCsv: () => req('/api/import-csv', { method: 'POST' }),
   digest: () => req('/api/digest'),
+
+  googleStatus: () => req('/api/google/status'),
+  createCalendar: () => req('/api/calendar', { method: 'POST', body: {} }),
+  seedCadence: () => req('/api/calendar/seed-cadence', { method: 'POST' }),
+  googleEvents: () => req('/api/calendar/google-events'),
+  addGoogleEvent: (b) => req('/api/calendar/google-events', { method: 'POST', body: b }),
+  deleteGoogleEvent: (id) => req(`/api/calendar/google-events/${id}`, { method: 'DELETE' }),
 };
 
 export const STATUSES = [

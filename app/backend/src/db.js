@@ -61,7 +61,24 @@ db.exec(`
     notes TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
 `);
+
+export const Settings = {
+  get: (k) => {
+    const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);
+    return r ? r.value : null;
+  },
+  set: (k, v) => {
+    db.prepare(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+    ).run(k, v == null ? null : String(v));
+  },
+};
 
 // --- generic helpers -------------------------------------------------------
 const APP_FIELDS = [

@@ -6,10 +6,12 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "gcal-auth": "node src/auth-cli.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "googleapis": "^144.0.0"
   }
 }

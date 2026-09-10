@@ -10,7 +10,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
     "build": "npm --prefix frontend run build",
-    "start": "npm --prefix backend start"
+    "start": "npm --prefix backend start",
+    "gcal-auth": "npm --prefix backend run gcal-auth"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

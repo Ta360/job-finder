@@ -3,6 +3,9 @@ node_modules/
 app/**/node_modules/
 app/**/dist/
 app/backend/data/
+# never commit Google secrets (also covered by data/ above)
+**/google-credentials.json
+**/google-token.json
 *.log
 
 # keep generated resumes tracked; ignore only build dirs

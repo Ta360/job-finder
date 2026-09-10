@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { api } from '../api.js';
 
 const blank = () => ({ title: '', type: 'interview', start: '', end: '', company: '', notes: '' });
@@ -14,7 +14,6 @@ export default function Calendar({ events, apps, reload }) {
   };
   const del = async (id) => { await api.deleteEvent(id); reload(); };
 
-  // upcoming follow-ups derived from applications
   const followUps = useMemo(
     () => apps.filter((a) => a.next_action_date).sort((x, y) => x.next_action_date.localeCompare(y.next_action_date)),
     [apps]
@@ -22,13 +21,10 @@ export default function Calendar({ events, apps, reload }) {
 
   return (
     <>
-      <div className="banner">
-        Local calendar. Reconnect the Google Calendar connector (write access) and these can sync to a real
-        “Job Finder” Google calendar with reminders.
-      </div>
+      <GooglePanel />
 
-      <form className="card" onSubmit={submit}>
-        <h2>Add event (interview / call)</h2>
+      <form className="card" onSubmit={submit} style={{ marginTop: 16 }}>
+        <h2>Add local event (interview / call)</h2>
         <div className="form-grid">
           <label>Title<input value={form.title} onChange={set('title')} required /></label>
           <label>Type
@@ -45,20 +41,18 @@ export default function Calendar({ events, apps, reload }) {
       </form>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <h2>Scheduled ({events.length})</h2>
+        <h2>Local events ({events.length})</h2>
         <table>
           <thead><tr><th>When</th><th>Title</th><th>Type</th><th>Company</th><th></th></tr></thead>
           <tbody>
             {events.map((ev) => (
               <tr key={ev.id}>
                 <td>{ev.start?.replace('T', ' ')}</td>
-                <td>{ev.title}</td>
-                <td>{ev.type}</td>
-                <td>{ev.company}</td>
+                <td>{ev.title}</td><td>{ev.type}</td><td>{ev.company}</td>
                 <td><button className="ghost danger" onClick={() => del(ev.id)}>✕</button></td>
               </tr>
             ))}
-            {!events.length && <tr><td colSpan={5} className="muted">No events yet.</td></tr>}
+            {!events.length && <tr><td colSpan={5} className="muted">No local events.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -79,5 +73,97 @@ export default function Calendar({ events, apps, reload }) {
         </table>
       </div>
     </>
+  );
+}
+
+function GooglePanel() {
+  const [st, setSt] = useState(null);
+  const [gev, setGev] = useState([]);
+  const [busy, setBusy] = useState('');
+  const [msg, setMsg] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const s = await api.googleStatus();
+      setSt(s);
+      if (s.calendarId) setGev(await api.googleEvents().catch(() => []));
+    } catch (e) {
+      setSt({ error: String(e.message || e) });
+    }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const run = (name, fn) => async () => {
+    setBusy(name); setMsg('');
+    try {
+      const r = await fn();
+      setMsg(typeof r === 'object' ? JSON.stringify(r) : String(r));
+      await load();
+    } catch (e) {
+      setMsg('Error: ' + String(e.message || e));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  if (!st) return <div className="card">Checking Google connection…</div>;
+
+  if (!st.hasCredentials) {
+    return (
+      <div className="card">
+        <h2>Google Calendar</h2>
+        <div className="banner">
+          Not configured. Add an OAuth “Desktop app” client JSON at
+          <code> app/backend/data/google-credentials.json</code>, then run
+          <code> npm run gcal-auth</code> in <code>app/</code>. Full steps in <b>SETUP_GOOGLE.md</b>.
+        </div>
+      </div>
+    );
+  }
+
+  if (!st.connected) {
+    return (
+      <div className="card">
+        <h2>Google Calendar</h2>
+        <p className="muted">Credentials found, but consent not completed.</p>
+        <p>Run <code>npm run gcal-auth</code> in <code>app/</code> and approve access, then refresh this page.</p>
+        {st.consentUrl && <p><a href={st.consentUrl} target="_blank" rel="noreferrer">Or open the consent screen directly →</a> (you'll still need the CLI running to catch the redirect)</p>}
+        <button onClick={load}>Re-check</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <h2>Google Calendar — connected{st.email ? ` (${st.email})` : ''}</h2>
+      <div className="toolbar">
+        {!st.calendarId
+          ? <button className="primary" disabled={busy} onClick={run('cal', api.createCalendar)}>
+              {busy === 'cal' ? 'Creating…' : 'Create “Job Finder” calendar'}
+            </button>
+          : <span className="pill">calendar id: {st.calendarId.slice(0, 24)}…</span>}
+        {st.calendarId &&
+          <button disabled={busy} onClick={run('seed', api.seedCadence)}>
+            {busy === 'seed' ? 'Adding…' : 'Add the 3 recurring holds'}
+          </button>}
+        <button disabled={busy} onClick={load}>Refresh</button>
+      </div>
+      {msg && <p className="muted" style={{ wordBreak: 'break-all' }}>{msg}</p>}
+      {st.calendarId && (
+        <table>
+          <thead><tr><th>When</th><th>Event</th><th></th></tr></thead>
+          <tbody>
+            {gev.map((e) => (
+              <tr key={e.id}>
+                <td>{(e.start?.dateTime || e.start?.date || '').replace('T', ' ').slice(0, 16)}</td>
+                <td>{e.summary}{e.recurrence ? ' ↻' : ''}</td>
+                <td><button className="ghost danger" onClick={run('del' + e.id, () => api.deleteGoogleEvent(e.id))}>✕</button></td>
+              </tr>
+            ))}
+            {!gev.length && <tr><td colSpan={3} className="muted">No upcoming events on this calendar.</td></tr>}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }
