@@ -1,13 +1,16 @@
 # Job Finder — calendar & 30-day cadence
 
-**Google Calendar connector needs reconnecting** (it returned "requires additional permissions").
-To enable: reconnect Google Calendar with write access, then tell me — I'll create a **"Job Finder"** calendar with:
-- Daily 09:15 IST — "Review digest + apply (15–20 min)"
-- Daily 18:00 IST — "Send recruiter drafts + log outcomes"
-- Sunday 11:00 IST — "Weekly review: rates, retarget"
-- Interview / call slots as they get booked, with a 60-min-before reminder.
+**Google Calendar + Gmail connected 2026-09-10.** Recurring holds created on the primary
+calendar (no separate-calendar API is available, so events use a `[Job Finder]` prefix):
+- Daily 09:15 IST — "[Job Finder] Review digest + apply (15–20 min)"  (popup 10 min before)
+- Daily 18:00 IST — "[Job Finder] Send recruiter drafts + log outcomes"
+- Sundays 11:00 IST — "[Job Finder] Weekly review — response rates + retarget"
+Interview / call slots get added as they're booked, with a reminder before.
 
-Until then, use this cadence manually:
+Two recruiter outreach emails are sitting in **Gmail Drafts** (Porch, Anovia) — each needs a
+recruiter address + the resume attached before you send.
+
+Cadence:
 
 ## Week 1 (Sep 10–16) — volume + setup
 - Confirm resume fixes (`resume/change-log.md`); I generate PDF/DOCX/TXT.
