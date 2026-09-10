@@ -11,8 +11,12 @@ mkdirSync(DATA_DIR, { recursive: true });
 
 export const db = new DatabaseSync(join(DATA_DIR, 'job-finder.db'));
 
+// journal_mode = DELETE (not WAL): the cloud DATA_DIR is an Azure Files (SMB)
+// mount, and WAL needs shared-memory/mmap that network filesystems don't provide.
+// Single low-traffic replica, so WAL's concurrency win doesn't matter here.
 db.exec(`
-  PRAGMA journal_mode = WAL;
+  PRAGMA journal_mode = DELETE;
+  PRAGMA busy_timeout = 5000;
 
   CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
