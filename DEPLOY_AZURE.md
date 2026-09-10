@@ -85,11 +85,14 @@ Dashboard → **Upload CSV** picks a file from your machine and imports it, or
 
 ## Notes
 
-- **The cloud DB is ephemeral — local is the source of truth.** A redeploy or a
-  scale-from-zero cold start resets the cloud SQLite DB: applications/outreach/events
-  added on the cloud, the Google Calendar connection, and the stored calendar id are lost.
-  What still works after a reset: Digest (pulled from GitHub), CSV upload / repo import,
-  and adding new rows (until the next reset).
+- **The cloud DB is ephemeral, but it now re-seeds itself.** On startup an empty DB
+  hydrates from `IMPORT_CSV_REMOTE_URL` (applications.csv) and `OUTREACH_REMOTE_URL`
+  (outreach.csv) on GitHub, so a redeploy / cold start comes back with the tracked
+  applications and outreach instead of blank. Still lost on reset: the Google Calendar
+  connection + stored calendar id, and any rows added *only* on the cloud (not written
+  back to the CSVs). **Keep `applications/applications.csv` and `applications/outreach.csv`
+  current in git** — they are the cloud's source of truth. The local instance (real
+  filesystem) is authoritative for everything.
   - Azure Files was tried as a persistent mount (`jfdata` share on `jobfinderstore6877`,
     mounted at `/data`). `node:sqlite` fails to activate on the SMB mount even as root
     with `journal_mode=DELETE`, so `DATA_DIR` is left unset and the share is unused.
