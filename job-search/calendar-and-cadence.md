@@ -1,11 +1,17 @@
 # Job Finder — calendar & 30-day cadence
 
-**Google Calendar + Gmail connected 2026-09-10.** Recurring holds created on the primary
-calendar (no separate-calendar API is available, so events use a `[Job Finder]` prefix):
+**Dedicated "Job Finder" Google calendar created 2026-09-10** via the app's own API
+(`POST /api/calendar` → `calendars.insert`). The three primary-calendar `[Job Finder]`
+events were deleted; the holds now live on the separate calendar:
 - Daily 09:15 IST — "[Job Finder] Review digest + apply (15–20 min)"  (popup 10 min before)
 - Daily 18:00 IST — "[Job Finder] Send recruiter drafts + log outcomes"
 - Sundays 11:00 IST — "[Job Finder] Weekly review — response rates + retarget"
-Interview / call slots get added as they're booked, with a reminder before.
+
+Calendar id: `666c1e8922662fd2c39ee2ce6350611b9461f0848c9e192b062b679a7855783f@group.calendar.google.com`
+Manage from the dashboard → Calendar tab, or:
+`curl -X POST http://localhost:4200/api/calendar/google-events -H "content-type: application/json" -d '{"summary":"Interview — Acme","start":"2026-09-20T18:00:00","end":"2026-09-20T18:45:00","reminderMinutes":60}'`
+
+Interview / call slots get added there as they're booked.
 
 Two recruiter outreach emails are sitting in **Gmail Drafts** (Porch, Anovia) — each needs a
 recruiter address + the resume attached before you send.
