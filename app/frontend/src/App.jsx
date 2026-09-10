@@ -43,7 +43,7 @@ export default function App() {
       </header>
       <main>
         {err && <div className="banner">API error: {err}. Is the backend running on :4200?</div>}
-        {tab === 'Dashboard' && <Dashboard stats={stats} onImport={async () => { await api.importCsv(); reload(); }} />}
+        {tab === 'Dashboard' && <Dashboard stats={stats} onImport={async () => { const r = await api.importCsv(); reload(); return r; }} />}
         {tab === 'Applications' && <Applications rows={apps} reload={reload} />}
         {tab === 'Outreach' && <Outreach rows={reach} reload={reload} />}
         {tab === 'Digest' && <Digest />}

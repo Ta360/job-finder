@@ -1,20 +1,52 @@
+import { useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
+import { api } from '../api.js';
 
 const KPI = ({ n, l }) => (
   <div className="card kpi"><div className="n">{n}</div><div className="l">{l}</div></div>
 );
 
 export default function Dashboard({ stats, onImport }) {
+  const [msg, setMsg] = useState('');
   if (!stats) return <p className="muted">Loading…</p>;
   const { totals, daily, funnel, byChannel } = stats;
+
+  const importRepo = async () => {
+    setMsg('');
+    try {
+      const r = await onImport();
+      setMsg(r ? `Imported ${r.imported ?? 0} (${r.source || 'repo'})` : 'Imported');
+    } catch (e) {
+      setMsg('Error: ' + String(e.message || e));
+    }
+  };
+  const importUpload = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setMsg('');
+    try {
+      const text = await f.text();
+      const r = await api.importCsv(text);
+      setMsg(`Imported ${r.imported} from ${f.name}`);
+      onImport && onImport();
+    } catch (err) {
+      setMsg('Error: ' + String(err.message || err));
+    } finally {
+      e.target.value = '';
+    }
+  };
 
   return (
     <>
       <div className="toolbar">
-        <button className="primary" onClick={onImport}>Import applications.csv</button>
-        <span className="muted">Pulls rows from the repo's flat tracker into the database.</span>
+        <button className="primary" onClick={importRepo}>Import from repo / cloud</button>
+        <label className="button" style={{ display: 'inline-block' }}>
+          Upload CSV
+          <input type="file" accept=".csv,text/csv" onChange={importUpload} hidden />
+        </label>
+        <span className="muted">{msg || 'Load applications from the tracker file or a CSV you pick.'}</span>
       </div>
 
       <div className="grid kpis">

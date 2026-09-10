@@ -23,7 +23,7 @@ export const api = {
   events: () => req('/api/events'),
   addEvent: (b) => req('/api/events', { method: 'POST', body: b }),
   deleteEvent: (id) => req(`/api/events/${id}`, { method: 'DELETE' }),
-  importCsv: () => req('/api/import-csv', { method: 'POST' }),
+  importCsv: (csv) => req('/api/import-csv', { method: 'POST', body: csv ? { csv } : {} }),
   digest: () => req('/api/digest'),
 
   googleStatus: () => req('/api/google/status'),

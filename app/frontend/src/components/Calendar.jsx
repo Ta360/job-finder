@@ -113,9 +113,9 @@ function GooglePanel() {
       <div className="card">
         <h2>Google Calendar</h2>
         <div className="banner">
-          Not configured. Add an OAuth “Desktop app” client JSON at
-          <code> app/backend/data/google-credentials.json</code>, then run
-          <code> npm run gcal-auth</code> in <code>app/</code>. Full steps in <b>SETUP_GOOGLE.md</b>.
+          Not configured. Local: add an OAuth “Desktop app” client JSON at
+          <code> app/backend/data/google-credentials.json</code> and run <code>npm run gcal-auth</code>.
+          Cloud: set <code>GOOGLE_WEB_CLIENT_ID</code> / <code>GOOGLE_WEB_CLIENT_SECRET</code>. See <b>SETUP_GOOGLE.md</b>.
         </div>
       </div>
     );
@@ -125,9 +125,11 @@ function GooglePanel() {
     return (
       <div className="card">
         <h2>Google Calendar</h2>
-        <p className="muted">Credentials found, but consent not completed.</p>
-        <p>Run <code>npm run gcal-auth</code> in <code>app/</code> and approve access, then refresh this page.</p>
-        {st.consentUrl && <p><a href={st.consentUrl} target="_blank" rel="noreferrer">Or open the consent screen directly →</a> (you'll still need the CLI running to catch the redirect)</p>}
+        <p className="muted">Not connected yet.</p>
+        {st.connectUrl
+          ? <p><a className="button primary" href={st.connectUrl}>Connect Google Calendar →</a>
+              <span className="muted" style={{ marginLeft: 10 }}>opens Google consent, then returns here</span></p>
+          : <p>Run <code>npm run gcal-auth</code> in <code>app/</code> and approve access.</p>}
         <button onClick={load}>Re-check</button>
       </div>
     );

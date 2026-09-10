@@ -13,8 +13,9 @@ const REPO_ROOT = join(__dirname, '..', '..', '..'); // .../Job Finder
 const FRONTEND_DIST = join(__dirname, '..', '..', 'frontend', 'dist');
 
 const app = express();
+app.set('trust proxy', true); // behind Azure Container Apps ingress (X-Forwarded-Proto)
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 // --- optional auth gate --------------------------------------------------
 // When REQUIRE_AUTH=1 (set in the cloud), every request must carry an
@@ -87,15 +88,37 @@ const awrap = (fn) => async (req, res) => {
   }
 };
 
-app.get('/api/google/status', awrap(async (_req, res) => {
+const callbackUrl = (req) => `${req.protocol}://${req.get('host')}/api/google/callback`;
+
+app.get('/api/google/status', awrap(async (req, res) => {
   const connected = G.isConnected();
   res.json({
     hasCredentials: G.hasCredentials(),
     connected,
     email: connected ? await G.connectedEmail() : null,
     calendarId: Settings.get(CAL_KEY),
-    consentUrl: G.hasCredentials() ? G.consentUrl() : null,
+    // browser-based connect flow (works local and in the cloud)
+    connectUrl: G.hasCredentials() ? '/api/google/connect' : null,
   });
+}));
+
+// Browser OAuth: start consent, then land back on the dashboard connected.
+app.get('/api/google/connect', awrap(async (req, res) => {
+  if (!G.hasCredentials()) return res.status(400).send('No Google client configured');
+  res.redirect(G.consentUrl(callbackUrl(req)));
+}));
+
+app.get('/api/google/callback', awrap(async (req, res) => {
+  const { code, error } = req.query;
+  if (error) return res.status(400).send(`Google consent failed: ${error}`);
+  if (!code) return res.status(400).send('Missing authorization code');
+  await G.exchangeCode(String(code), callbackUrl(req));
+  res.redirect('/?google=connected');
+}));
+
+app.post('/api/google/disconnect', wrap((_req, res) => {
+  G.disconnect();
+  res.json({ ok: true });
 }));
 
 // Create the dedicated calendar (default name "Job Finder") and remember its id.
@@ -161,12 +184,13 @@ app.post('/api/calendar/seed-cadence', awrap(async (_req, res) => {
   res.status(201).json({ created: made.length, events: made.map((e) => ({ id: e.id, summary: e.summary })) });
 }));
 
-// --- import the flat applications.csv from the repo ----------------
-app.post('/api/import-csv', wrap((_req, res) => {
-  const csvPath = join(REPO_ROOT, 'applications', 'applications.csv');
-  if (!existsSync(csvPath)) return res.status(404).json({ error: 'applications.csv not found' });
-  const text = readFileSync(csvPath, 'utf8').trim();
-  const [head, ...lines] = text.split(/\r?\n/);
+// --- import applications from CSV --------------------------------------
+// Source order: request body {csv} -> local repo file -> IMPORT_CSV_REMOTE_URL
+// (public GitHub raw, for the cloud instance). Existing company+role pairs skip.
+const IMPORT_CSV_REMOTE_URL = process.env.IMPORT_CSV_REMOTE_URL || '';
+
+function importCsvText(text) {
+  const [head, ...lines] = text.trim().split(/\r?\n/);
   const cols = head.split(',').map((c) => c.trim());
   let imported = 0;
   for (const line of lines) {
@@ -180,7 +204,22 @@ app.post('/api/import-csv', wrap((_req, res) => {
     Applications.create(row);
     imported++;
   }
-  res.json({ imported });
+  return imported;
+}
+
+app.post('/api/import-csv', awrap(async (req, res) => {
+  if (req.body && typeof req.body.csv === 'string' && req.body.csv.trim()) {
+    return res.json({ imported: importCsvText(req.body.csv), source: 'upload' });
+  }
+  const csvPath = join(REPO_ROOT, 'applications', 'applications.csv');
+  if (existsSync(csvPath)) {
+    return res.json({ imported: importCsvText(readFileSync(csvPath, 'utf8')), source: 'file' });
+  }
+  if (IMPORT_CSV_REMOTE_URL) {
+    const r = await fetch(IMPORT_CSV_REMOTE_URL, { signal: AbortSignal.timeout(8000) });
+    if (r.ok) return res.json({ imported: importCsvText(await r.text()), source: 'remote' });
+  }
+  res.status(404).json({ error: 'No CSV available — upload one from the dashboard' });
 }));
 
 // --- latest job digest (markdown) --------------------------------

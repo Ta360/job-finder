@@ -36,6 +36,15 @@ button {
   padding: 7px 12px;
 }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 7px 12px;
+}
 button.ghost { background: transparent; }
 button.danger { color: var(--bad); }
 input, select, textarea {
