@@ -44,10 +44,36 @@ resume/        master resume + tailoring guide + change log
 job-search/    board search links, daily digests
 applications/  applications.csv tracker + queue/ of prepared packets
 outreach/      recruiter email / LinkedIn / follow-up templates
-dashboard/     index.html analytics (reads applications.csv)
+dashboard/     index.html — standalone offline dashboard (no server)
+app/           the web app: backend/ (Express API) + frontend/ (React)
 agents/        the 5 agent role definitions
 scripts/       helper notes
 ```
+
+## The web app (`app/`)
+
+Full-stack dashboard with a database, replacing the static `dashboard/index.html` for day-to-day use.
+
+- **Backend** — Express + SQLite (via Node's built-in `node:sqlite`, no native deps). REST API for applications, outreach, events, computed stats, CSV import, and serving the latest digest. Port `4200`.
+- **Frontend** — Vite + React + Recharts. Tabs: **Dashboard** (KPIs, 14-day activity, funnel, channel mix), **Applications** (add/edit/status), **Outreach** (recruiter messages + follow-ups), **Digest** (today's job list), **Calendar** (interview/call slots + follow-ups).
+
+### Run it
+
+```bash
+cd "app" && npm run install:all
+```
+
+```bash
+cd "app" && npm run dev
+```
+
+Dev: API on http://localhost:4200, UI on http://localhost:5273 (proxies `/api`).
+Production single process: `npm --prefix app/frontend run build` then `node app/backend/src/server.js` → everything on http://localhost:4200.
+
+Data lives in `app/backend/data/job-finder.db` (gitignored). Click **Import applications.csv** on the Dashboard to pull in the flat-file rows.
+
+### Deploy
+`app/Dockerfile` builds one image (API + built SPA). See `DEPLOY_AZURE.md` — same Azure Container Apps pattern as the stocks project.
 
 ## Connectors still needed
 
