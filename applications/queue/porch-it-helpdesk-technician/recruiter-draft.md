@@ -29,4 +29,4 @@ I'm in India, fully remote, and can overlap US Pacific/Eastern mornings. Availab
 
 Best,
 Tanmoy Sarkar
-+91 62000 30830 (WhatsApp too) · tanmoy1.sarkar@gmail.com · linkedin.com/in/<ADD-HANDLE>
++91 62000 30830 (WhatsApp too) · tanmoy1.sarkar@gmail.com · linkedin.com/in/tanmoy-sarkar-

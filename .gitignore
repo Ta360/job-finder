@@ -1,8 +1,9 @@
-*.pdf
-*.docx
 .DS_Store
 node_modules/
 app/**/node_modules/
 app/**/dist/
 app/backend/data/
 *.log
+
+# keep generated resumes tracked; ignore only build dirs
+applications/queue/**/*.tmp

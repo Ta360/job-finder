@@ -11,8 +11,8 @@
 
 ## You must fix before sending
 
-- [ ] **LinkedIn URL** in your PDF is blank (`linkedin.com/in/`). Add your real handle. A missing LinkedIn hurts recruiter response badly.
-- [ ] **Certifications wording.** Your PDF lists "Microsoft Azure Active Directory Server (2021)" (not a real exam name) and "CCNA R&S, CCNP R&S, CCIE Security — Networking Courses (2020)". If you *passed* these exams, name them exactly (e.g. AZ-104, SC-300, 200-301 CCNA) and keep them under Certifications. If they were courses only, leave them under Training as I've done. Claiming an un-passed CCIE is an instant credibility loss if probed.
+- [x] **LinkedIn URL** — provided 2026-09-10: `linkedin.com/in/tanmoy-sarkar-`. Inserted into master + all tailored resumes. (Double-check that's the exact vanity URL — it has a trailing hyphen.)
+- [ ] **Certifications wording** — STILL OPEN. Your PDF listed "Microsoft Azure Active Directory Server (2021)" (not a real exam name) and "CCNA R&S, CCNP R&S, CCIE Security — Networking Courses (2020)". For now every resume lists these under **"Education & Training"** as *coursework* — which is safe and true whether or not you sat the exams. If you actually **passed** any of them, tell me the exact exam + year (e.g. "200-301 CCNA, 2020") and I'll move those to a real **Certifications** line. Do not let a recruiter believe you hold a CCIE you didn't pass — it ends processes.
 - [ ] **Consultant section (May 2025–Present).** You confirmed these are real. Make sure you can, if asked: name a contact or reference, describe the scope in detail, and that the metrics ("28% uptime", "40% faster onboarding") are defensible. If any number is a guess, soften it to "reduced onboarding time" without the figure.
 - [ ] **Location expectation.** You're in India applying to US/UK "remote" roles. Many are country-locked (work authorisation, timezone, data residency). Targeting below is built around companies that hire globally / India-remote / via contractor or EOR. Keep expectations realistic on the strictly US-only listings.
 - [ ] **Phone:** your PDF has two numbers; keep one primary on the resume (I used 62000 30830 — change if wrong).

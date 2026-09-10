@@ -2,7 +2,7 @@
 **IT Support Engineer · IT Helpdesk / Service Desk Engineer (Remote)**
 
 tanmoy1.sarkar@gmail.com · +91 62000 30830 · Dhanbad, Jharkhand, India
-LinkedIn: linkedin.com/in/<ADD-YOUR-HANDLE> · Open to fully remote roles · Available to overlap US ET & UK GMT hours
+LinkedIn: linkedin.com/in/tanmoy-sarkar- · Open to fully remote roles · Available to overlap US ET & UK GMT hours
 
 ---
 

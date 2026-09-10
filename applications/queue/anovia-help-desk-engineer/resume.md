@@ -1,7 +1,7 @@
 # TANMOY SARKAR
 **Help Desk Engineer (Remote) · IT Service Desk / Application Support**
 
-tanmoy1.sarkar@gmail.com · +91 62000 30830 · Dhanbad, India · linkedin.com/in/<ADD-HANDLE>
+tanmoy1.sarkar@gmail.com · +91 62000 30830 · Dhanbad, India · linkedin.com/in/tanmoy-sarkar-
 Fully remote · English (fluent), Hindi, Bengali
 
 ## SUMMARY
