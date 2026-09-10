@@ -85,8 +85,20 @@ Dashboard → **Upload CSV** picks a file from your machine and imports it, or
 
 ## Notes
 
-- **SQLite data is ephemeral** — a revision restart resets the DB (applications, outreach,
-  events, the Google token, the "Job Finder" calendar id). Re-connect Google + re-import
-  after a restart, or mount Azure Files at `/app/backend/data` for durability.
+- **The cloud DB is ephemeral — local is the source of truth.** A redeploy or a
+  scale-from-zero cold start resets the cloud SQLite DB: applications/outreach/events
+  added on the cloud, the Google Calendar connection, and the stored calendar id are lost.
+  What still works after a reset: Digest (pulled from GitHub), CSV upload / repo import,
+  and adding new rows (until the next reset).
+  - Azure Files was tried as a persistent mount (`jfdata` share on `jobfinderstore6877`,
+    mounted at `/data`). `node:sqlite` fails to activate on the SMB mount even as root
+    with `journal_mode=DELETE`, so `DATA_DIR` is left unset and the share is unused.
+    Safe to delete `jfdata` env storage + the `jobfinderstore6877` account.
+  - For durable cloud state, the real fix is swapping SQLite for **Azure Database for
+    PostgreSQL Flexible Server** (~$13–15/mo) — not done.
+  - Cheaper stopgap: `--min-replicas 1` keeps one replica warm so the ephemeral disk
+    survives idle (only a redeploy/platform migration then resets it). ~$13–18/mo always-on.
+- Treat the **local** instance (`localhost:4200`, real filesystem persistence) as
+  authoritative for the Google Calendar link and any manually-tracked rows.
 - **Tear down:** `az group delete -n job-finder-rg --yes --no-wait`
 - **Cost:** ACR Basic ~$5/mo; Container Apps ~free at idle (scale-to-zero), pennies/day when used.
