@@ -1,43 +1,65 @@
-# Deploy — Job Finder web app
+# Deploy — Job Finder web app (Azure Container Apps)
 
-Single container image (`app/Dockerfile`): the Express API static-serves the built React SPA and exposes the REST API on port **4200**.
+Single container image (`app/Dockerfile`): Express API serves the built React SPA on port **4200**.
 
-## Local check
+## Live deployment (created 2026-09-10)
+
+| Thing | Value |
+|---|---|
+| URL | https://job-finder.lemonmushroom-294dede7.eastus.azurecontainerapps.io |
+| Resource group | `job-finder-rg` (eastus) |
+| Registry | `jobfinderacr29624.azurecr.io` |
+| Environment | `job-finder-env` |
+| Container app | `job-finder` |
+| Scale | min 0 / max 1 · 0.5 vCPU · 1.0 GiB (scales to zero when idle) |
+| Env vars | `NODE_ENV=production`, `REQUIRE_AUTH=1`, `ALLOWED_EMAILS=tanmoy1.sarkar@gmail.com` |
+
+`REQUIRE_AUTH=1` means every request except `/api/health` needs an Azure Easy Auth
+principal, and only `ALLOWED_EMAILS` accounts pass. Until Easy Auth is wired (below),
+the app returns **401 for everything** — locked, not yet usable.
+
+## Rebuild + redeploy after code changes
 
 ```bash
-cd app
-docker build -t job-finder .
-docker run --rm -p 4200:4200 -v job-finder-data:/app/backend/data job-finder
+export PYTHONIOENCODING=utf-8 PYTHONUTF8=1   # avoids an az-cli unicode crash on Windows
+az acr build -r jobfinderacr29624 -t job-finder:latest "C:/Users/TANMOY SARKAR/Desktop/Job Finder/app"
+az containerapp update -n job-finder -g job-finder-rg --image jobfinderacr29624.azurecr.io/job-finder:latest
 ```
 
-Open http://localhost:4200.
+## Enable Google sign-in (Azure Easy Auth)
 
-## Azure Container Apps (same pattern as the stocks project)
+1. In the **same Google Cloud project** ("Google Calendar API for job") →
+   **Clients → Create client → Web application**, name `job-finder-web`.
+2. **Authorised redirect URIs** → add:
+   ```
+   https://job-finder.lemonmushroom-294dede7.eastus.azurecontainerapps.io/.auth/login/google/callback
+   ```
+3. Create → copy the **Client ID** and **Client secret**.
+4. Run:
 
-```bash
-RG=job-finder-rg
-LOC=eastus
-ACR=jobfinderacr$RANDOM
-APP=job-finder
+   ```bash
+   az containerapp auth google update -n job-finder -g job-finder-rg \
+     --client-id  <WEB_CLIENT_ID> \
+     --client-secret <WEB_CLIENT_SECRET> \
+     --yes
+   az containerapp auth update -n job-finder -g job-finder-rg \
+     --enabled true \
+     --unauthenticated-client-action RedirectToLoginPage \
+     --redirect-provider google
+   ```
 
-az group create -n $RG -l $LOC
-az acr create -n $ACR -g $RG --sku Basic --admin-enabled true
-az acr build -r $ACR -t job-finder:latest ./app
+Now visiting the URL redirects to Google; after sign-in, the app's own middleware
+checks the email against `ALLOWED_EMAILS`.
 
-az containerapp env create -n job-finder-env -g $RG -l $LOC
-az containerapp create -n $APP -g $RG \
-  --environment job-finder-env \
-  --image $ACR.azurecr.io/job-finder:latest \
-  --registry-server $ACR.azurecr.io \
-  --target-port 4200 --ingress external \
-  --min-replicas 1 --max-replicas 1 \
-  --cpu 0.5 --memory 1.0Gi
-```
+## Notes
 
-## Persistence note
-
-SQLite writes to `/app/backend/data`. Container Apps' local disk is **ephemeral** — a revision restart wipes it. For durable data mount an Azure Files share at `/app/backend/data` (`az containerapp env storage set` + `--volume`/`--volume-mount`), or point `DATA_DIR` at a mounted path. For a personal tool that you also back up via the `applications.csv` export, ephemeral + periodic CSV import is acceptable.
-
-## Auth
-
-There is **no authentication** on this app. If you deploy it publicly, put it behind Container Apps auth (`az containerapp auth`) or keep `--ingress internal` and reach it over VPN. Don't expose your job-search data unprotected.
+- **Google Calendar feature is dormant in the cloud.** It uses a desktop-OAuth
+  refresh token stored in `app/backend/data/` (git-ignored, not in the image, and the
+  container disk is ephemeral). The Calendar tab works on the **local** instance only.
+  To enable it in the cloud you'd move the token store to a mounted Azure Files share
+  and switch to a web OAuth flow.
+- **SQLite data is ephemeral** — a revision restart resets the DB. Fine for a personal
+  tracker you also keep in `applications.csv`; for durability mount Azure Files at
+  `/app/backend/data`.
+- **Tear down:** `az group delete -n job-finder-rg --yes --no-wait`
+- **Cost:** ACR Basic ~$5/mo; Container Apps ~free at idle (scale-to-zero), pennies/day when used.
