@@ -3,10 +3,14 @@
 **Mission:** turn recruiter interest into a scheduled conversation, fast, and never let a lead go cold.
 
 ## Track
-- Read `applications/applications.csv`. For every row with status `applied` or `emailed` and no reply:
-  - Day +4–5 business: draft a 2-line follow-up (Gmail draft).
-  - Day +10: second and final nudge, or mark `no-response`.
-- Any row that gets a reply → status `recruiter-replied`, set next action + due date.
+Now runs as **Step 3 of the daily 9 AM routine** (`job-finder-daily-digest`).
+- Reads `/api/applications` + `/api/outreach`. For every row where the follow-up date is
+  due, status is still `applied`/`emailed`, and there's no reply:
+  - Draft a short follow-up — Gmail draft if a real recruiter email exists, else a
+    ready LinkedIn message in the digest under "## Follow-ups due today".
+  - Push the follow-up date out 5 business days; on the 2nd nudge, mark `no-response` and stop.
+- Any row that gets a reply → you tell the agent → status `recruiter-replied`, next action set.
+- Nothing is auto-sent — the drafts wait for your Send click.
 
 ## When a recruiter replies (email / LinkedIn / WhatsApp / call)
 - **Email/LinkedIn:** draft a same-day response — enthusiastic, concise, propose 2–3 concrete slots in the recruiter's timezone (Tanmoy overlaps US ET and UK GMT), attach resume again if new thread.
