@@ -57,15 +57,36 @@ az containerapp auth update -n job-finder -g job-finder-rg \
   --enabled true --unauthenticated-client-action RedirectToLoginPage --redirect-provider google
 ```
 
+## Cloud parity env vars (set on the container app)
+
+| Var | Value | Enables |
+|---|---|---|
+| `DIGEST_REMOTE_URL` | GitHub raw of `job-search/digest-latest.md` | Digest tab reads from GitHub |
+| `IMPORT_CSV_REMOTE_URL` | GitHub raw of `applications/applications.csv` | "Import from repo / cloud" button |
+| `GOOGLE_WEB_CLIENT_ID` | `829413738578-k0f0nf9v…kevkab...` | browser Google Calendar connect |
+| `GOOGLE_WEB_CLIENT_SECRET` | `secretref:google-provider-authentication-secret` | ″ |
+
+### Google Calendar in the cloud — one-time
+
+Add this redirect URI to the **`job-finder-web`** OAuth client (Google Cloud → Clients):
+
+```
+https://job-finder.lemonmushroom-294dede7.eastus.azurecontainerapps.io/api/google/callback
+```
+
+Then on the cloud dashboard → Calendar tab → **Connect Google Calendar** → approve.
+The refresh token is stored in the DB (`settings.google_token`), so it survives
+revision restarts. The Calendar dropdown / seed-cadence / event CRUD then work in the cloud.
+
+### CSV in the cloud
+
+Dashboard → **Upload CSV** picks a file from your machine and imports it, or
+**Import from repo / cloud** pulls `applications.csv` from GitHub. Both also work locally.
+
 ## Notes
 
-- **Google Calendar feature is dormant in the cloud.** It uses a desktop-OAuth
-  refresh token stored in `app/backend/data/` (git-ignored, not in the image, and the
-  container disk is ephemeral). The Calendar tab works on the **local** instance only.
-  To enable it in the cloud you'd move the token store to a mounted Azure Files share
-  and switch to a web OAuth flow.
-- **SQLite data is ephemeral** — a revision restart resets the DB. Fine for a personal
-  tracker you also keep in `applications.csv`; for durability mount Azure Files at
-  `/app/backend/data`.
+- **SQLite data is ephemeral** — a revision restart resets the DB (applications, outreach,
+  events, the Google token, the "Job Finder" calendar id). Re-connect Google + re-import
+  after a restart, or mount Azure Files at `/app/backend/data` for durability.
 - **Tear down:** `az group delete -n job-finder-rg --yes --no-wait`
 - **Cost:** ACR Basic ~$5/mo; Container Apps ~free at idle (scale-to-zero), pennies/day when used.
