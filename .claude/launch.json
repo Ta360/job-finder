@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "job-finder-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["app/backend/src/server.js"],
+      "port": 4200
+    },
+    {
+      "name": "job-finder-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app/frontend", "run", "dev"],
+      "port": 5273
+    }
+  ]
+}

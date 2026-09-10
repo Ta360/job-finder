@@ -3,3 +3,7 @@ applications/queue/
 *.docx
 .DS_Store
 node_modules/
+app/**/node_modules/
+app/**/dist/
+app/backend/data/
+*.log
