@@ -26,30 +26,36 @@ az acr build -r jobfinderacr29624 -t job-finder:latest "C:/Users/TANMOY SARKAR/D
 az containerapp update -n job-finder -g job-finder-rg --image jobfinderacr29624.azurecr.io/job-finder:latest
 ```
 
-## Enable Google sign-in (Azure Easy Auth)
+## Google sign-in (Azure Easy Auth) — CONFIGURED
 
-1. In the **same Google Cloud project** ("Google Calendar API for job") →
-   **Clients → Create client → Web application**, name `job-finder-web`.
-2. **Authorised redirect URIs** → add:
-   ```
-   https://job-finder.lemonmushroom-294dede7.eastus.azurecontainerapps.io/.auth/login/google/callback
-   ```
-3. Create → copy the **Client ID** and **Client secret**.
-4. Run:
+Done 2026-09-10. Visiting the URL in a browser now 302-redirects to Google;
+after sign-in, the app's own middleware checks the email against `ALLOWED_EMAILS`
+(`tanmoy1.sarkar@gmail.com`). API-style requests without a session get 401.
 
-   ```bash
-   az containerapp auth google update -n job-finder -g job-finder-rg \
-     --client-id  <WEB_CLIENT_ID> \
-     --client-secret <WEB_CLIENT_SECRET> \
-     --yes
-   az containerapp auth update -n job-finder -g job-finder-rg \
-     --enabled true \
-     --unauthenticated-client-action RedirectToLoginPage \
-     --redirect-provider google
-   ```
+- Web OAuth client: `829413738578-k0f0nf9v5ma48ddr1i64jfop0fkevkab.apps.googleusercontent.com`
+  (type: Web application, in the "Google Calendar API for job" project)
+- Redirect URI registered:
+  `https://job-finder.lemonmushroom-294dede7.eastus.azurecontainerapps.io/.auth/login/google/callback`
+- Secret stored as Container App secret `google-provider-authentication-secret`
 
-Now visiting the URL redirects to Google; after sign-in, the app's own middleware
-checks the email against `ALLOWED_EMAILS`.
+### Rotate the client secret
+
+In Google Cloud → Clients → `job-finder-web` → **Reset secret**, then:
+
+```bash
+az containerapp secret set -n job-finder -g job-finder-rg \
+  --secrets "google-provider-authentication-secret=GOCSPX-<new>"
+az containerapp update -n job-finder -g job-finder-rg   # new revision picks it up
+```
+
+### Re-apply auth from scratch (reference)
+
+```bash
+az containerapp auth google update -n job-finder -g job-finder-rg \
+  --client-id <WEB_CLIENT_ID> --client-secret <WEB_CLIENT_SECRET> --yes
+az containerapp auth update -n job-finder -g job-finder-rg \
+  --enabled true --unauthenticated-client-action RedirectToLoginPage --redirect-provider google
+```
 
 ## Notes
 
