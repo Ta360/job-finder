@@ -147,7 +147,18 @@ export function disconnect() {
 }
 
 // --- high-level helpers ------------------------------------------------
+export async function findCalendarByName(summary = 'Job Finder') {
+  const { data } = await calendarApi().calendarList.list({ maxResults: 250 });
+  const hit = (data.items || []).find(
+    (c) => (c.summary || '').trim().toLowerCase() === summary.trim().toLowerCase()
+  );
+  return hit ? { id: hit.id, summary: hit.summary } : null;
+}
+
+// Reuse an existing "Job Finder" calendar if the account already has one.
 export async function createCalendar(summary = 'Job Finder', timeZone = 'Asia/Kolkata') {
+  const existing = await findCalendarByName(summary);
+  if (existing) return { ...existing, reused: true };
   const { data } = await calendarApi().calendars.insert({ requestBody: { summary, timeZone } });
   return data;
 }

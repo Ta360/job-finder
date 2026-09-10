@@ -129,7 +129,7 @@ app.post('/api/calendar', awrap(async (req, res) => {
   }
   const cal = await G.createCalendar(req.body.summary || 'Job Finder', req.body.timeZone || 'Asia/Kolkata');
   Settings.set(CAL_KEY, cal.id);
-  res.status(201).json({ id: cal.id, summary: cal.summary, reused: false });
+  res.status(201).json({ id: cal.id, summary: cal.summary, reused: !!cal.reused });
 }));
 
 const needCal = (res) => {
