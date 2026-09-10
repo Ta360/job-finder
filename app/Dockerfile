@@ -24,8 +24,9 @@ RUN npm install --omit=dev && npm cache clean --force
 COPY backend/ ./
 COPY --from=web /src/frontend/dist /app/frontend/dist
 
-RUN mkdir -p /app/backend/data && chown -R node:node /app
-USER node
+RUN mkdir -p /app/backend/data /data && chown -R node:node /app
+# Run as root: the cloud DATA_DIR is an Azure Files mount owned by root, and a
+# non-root user cannot create the SQLite DB on it. Single-tenant personal app.
 
 EXPOSE 4200
 HEALTHCHECK --interval=30s --timeout=3s --start-period=8s \
