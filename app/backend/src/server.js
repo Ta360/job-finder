@@ -184,9 +184,47 @@ app.post('/api/import-csv', wrap((_req, res) => {
 }));
 
 // --- latest job digest (markdown) --------------------------------
-app.get('/api/digest', wrap((_req, res) => {
+// Resolution order: DB (Settings) -> local repo file -> remote URL (public
+// GitHub raw, for the cloud instance that has no repo files). Cached 5 min.
+let digestCache = { at: 0, text: null };
+const DIGEST_REMOTE_URL = process.env.DIGEST_REMOTE_URL || '';
+
+app.get('/api/digest', awrap(async (_req, res) => {
+  const fromDb = Settings.get('latest_digest');
+  if (fromDb) return res.json({ markdown: fromDb, source: 'db' });
+
   const p = join(REPO_ROOT, 'job-search', 'digest-latest.md');
-  res.json({ markdown: existsSync(p) ? readFileSync(p, 'utf8') : '_No digest yet._' });
+  if (existsSync(p)) return res.json({ markdown: readFileSync(p, 'utf8'), source: 'file' });
+
+  if (DIGEST_REMOTE_URL) {
+    if (digestCache.text && Date.now() - digestCache.at < 5 * 60 * 1000) {
+      return res.json({ markdown: digestCache.text, source: 'remote-cache' });
+    }
+    try {
+      const r = await fetch(DIGEST_REMOTE_URL, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const text = await r.text();
+        digestCache = { at: Date.now(), text };
+        return res.json({ markdown: text, source: 'remote' });
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  res.json({ markdown: '_No digest yet._', source: 'none' });
+}));
+
+// Local/automation can push the digest into the DB so any instance shows it.
+// { clear: true } removes the override so file/remote resolution resumes.
+app.post('/api/digest', wrap((req, res) => {
+  if (req.body?.clear) {
+    Settings.set('latest_digest', null);
+    return res.json({ ok: true, cleared: true });
+  }
+  const md = String(req.body?.markdown || '');
+  if (!md.trim()) return res.status(400).json({ error: 'markdown required' });
+  Settings.set('latest_digest', md);
+  res.json({ ok: true, bytes: md.length });
 }));
 
 // --- serve built frontend in production ----------------------------
