@@ -1,0 +1,5 @@
+applications/queue/
+*.pdf
+*.docx
+.DS_Store
+node_modules/
