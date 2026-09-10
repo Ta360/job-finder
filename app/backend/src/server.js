@@ -207,20 +207,84 @@ function importCsvText(text) {
   return imported;
 }
 
+const OUTREACH_REMOTE_URL = process.env.OUTREACH_REMOTE_URL || '';
+
+function importOutreachText(text) {
+  const [head, ...lines] = text.trim().split(/\r?\n/);
+  const cols = head.split(',').map((c) => c.trim());
+  const existing = Outreach.all();
+  let imported = 0;
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cells = line.split(',');
+    const row = {};
+    cols.forEach((c, i) => (row[c] = (cells[i] || '').trim()));
+    if (!row.company) continue;
+    const dup = existing.some(
+      (o) => o.company === row.company && o.role === row.role && o.date === row.date
+    );
+    if (dup) continue;
+    Outreach.create(row);
+    imported++;
+  }
+  return imported;
+}
+
+async function fetchText(url) {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    return r.ok ? await r.text() : null;
+  } catch {
+    return null;
+  }
+}
+
 app.post('/api/import-csv', awrap(async (req, res) => {
+  const out = { applications: 0, outreach: 0, source: 'remote' };
+
   if (req.body && typeof req.body.csv === 'string' && req.body.csv.trim()) {
-    return res.json({ imported: importCsvText(req.body.csv), source: 'upload' });
+    out.applications = importCsvText(req.body.csv);
+    out.source = 'upload';
+    return res.json({ ...out, imported: out.applications });
   }
-  const csvPath = join(REPO_ROOT, 'applications', 'applications.csv');
-  if (existsSync(csvPath)) {
-    return res.json({ imported: importCsvText(readFileSync(csvPath, 'utf8')), source: 'file' });
+
+  const appsPath = join(REPO_ROOT, 'applications', 'applications.csv');
+  const outPath = join(REPO_ROOT, 'applications', 'outreach.csv');
+  if (existsSync(appsPath)) {
+    out.applications = importCsvText(readFileSync(appsPath, 'utf8'));
+    if (existsSync(outPath)) out.outreach = importOutreachText(readFileSync(outPath, 'utf8'));
+    out.source = 'file';
+    return res.json({ ...out, imported: out.applications });
   }
+
   if (IMPORT_CSV_REMOTE_URL) {
-    const r = await fetch(IMPORT_CSV_REMOTE_URL, { signal: AbortSignal.timeout(8000) });
-    if (r.ok) return res.json({ imported: importCsvText(await r.text()), source: 'remote' });
+    const t = await fetchText(IMPORT_CSV_REMOTE_URL);
+    if (t) out.applications = importCsvText(t);
   }
+  if (OUTREACH_REMOTE_URL) {
+    const t = await fetchText(OUTREACH_REMOTE_URL);
+    if (t) out.outreach = importOutreachText(t);
+  }
+  if (out.applications || out.outreach) return res.json({ ...out, imported: out.applications });
   res.status(404).json({ error: 'No CSV available — upload one from the dashboard' });
 }));
+
+// On boot, hydrate an empty cloud DB from the GitHub CSVs so a cold start
+// (ephemeral storage) comes back with the tracked data instead of blank.
+async function seedFromRemoteIfEmpty() {
+  try {
+    if (Applications.all().length === 0 && IMPORT_CSV_REMOTE_URL) {
+      const t = await fetchText(IMPORT_CSV_REMOTE_URL);
+      if (t) console.log(`seed: imported ${importCsvText(t)} applications from remote`);
+    }
+    if (Outreach.all().length === 0 && OUTREACH_REMOTE_URL) {
+      const t = await fetchText(OUTREACH_REMOTE_URL);
+      if (t) console.log(`seed: imported ${importOutreachText(t)} outreach from remote`);
+    }
+  } catch (e) {
+    console.error('seed failed:', e.message);
+  }
+}
 
 // --- latest job digest (markdown) --------------------------------
 // Resolution order: DB (Settings) -> local repo file -> remote URL (public
@@ -276,4 +340,7 @@ if (existsSync(FRONTEND_DIST)) {
 }
 
 const PORT = process.env.PORT || 4200;
-app.listen(PORT, () => console.log(`Job Finder API on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Job Finder API on http://localhost:${PORT}`);
+  seedFromRemoteIfEmpty();
+});

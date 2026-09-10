@@ -17,7 +17,11 @@ export default function Dashboard({ stats, onImport }) {
     setMsg('');
     try {
       const r = await onImport();
-      setMsg(r ? `Imported ${r.imported ?? 0} (${r.source || 'repo'})` : 'Imported');
+      setMsg(
+        r
+          ? `Imported ${r.applications ?? r.imported ?? 0} applications, ${r.outreach ?? 0} outreach (${r.source || 'repo'})`
+          : 'Imported'
+      );
     } catch (e) {
       setMsg('Error: ' + String(e.message || e));
     }
