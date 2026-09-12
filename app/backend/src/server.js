@@ -189,13 +189,41 @@ app.post('/api/calendar/seed-cadence', awrap(async (_req, res) => {
 // (public GitHub raw, for the cloud instance). Existing company+role pairs skip.
 const IMPORT_CSV_REMOTE_URL = process.env.IMPORT_CSV_REMOTE_URL || '';
 
+// RFC-4180-ish line splitter: a naive line.split(',') breaks as soon as a
+// quoted field contains a comma (e.g. "Engineer, Tier 2 - India"), which
+// shifts every column after it and silently corrupts the row.
+function splitCsvLine(line) {
+  const cells = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = false; }
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      cells.push(cur);
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  cells.push(cur);
+  return cells;
+}
+
 function importCsvText(text) {
   const [head, ...lines] = text.trim().split(/\r?\n/);
-  const cols = head.split(',').map((c) => c.trim());
+  const cols = splitCsvLine(head).map((c) => c.trim());
   let imported = 0;
   for (const line of lines) {
     if (!line.trim()) continue;
-    const cells = line.split(',');
+    const cells = splitCsvLine(line);
     const row = {};
     cols.forEach((c, i) => (row[c] = (cells[i] || '').trim()));
     if (/^example/i.test(row.company || '') || (row.notes || '').toLowerCase().includes('delete this example')) continue;
@@ -211,12 +239,12 @@ const OUTREACH_REMOTE_URL = process.env.OUTREACH_REMOTE_URL || '';
 
 function importOutreachText(text) {
   const [head, ...lines] = text.trim().split(/\r?\n/);
-  const cols = head.split(',').map((c) => c.trim());
+  const cols = splitCsvLine(head).map((c) => c.trim());
   const existing = Outreach.all();
   let imported = 0;
   for (const line of lines) {
     if (!line.trim()) continue;
-    const cells = line.split(',');
+    const cells = splitCsvLine(line);
     const row = {};
     cols.forEach((c, i) => (row[c] = (cells[i] || '').trim()));
     if (!row.company) continue;
