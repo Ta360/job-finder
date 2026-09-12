@@ -160,7 +160,11 @@ export function stats() {
   };
 
   const rank = (s) => FUNNEL.indexOf(s);
-  const replied = rows.filter((r) => r.first_reply_date || rank(r.status) > 1).length;
+  // A first_reply_date can be recorded before status catches up to
+  // 'recruiter-replied' — use the higher of the two everywhere so the
+  // reply tile and the funnel chart never disagree.
+  const effectiveRank = (r) => Math.max(rank(r.status), r.first_reply_date ? rank('recruiter-replied') : -1);
+  const replied = rows.filter((r) => effectiveRank(r) >= rank('recruiter-replied')).length;
   const interviews = rows.filter((r) => ['interview', 'offer'].includes(r.status)).length;
   const offers = rows.filter((r) => r.status === 'offer').length;
   const last7 = rows.filter((r) => r.date >= daysAgo(6)).length;
@@ -177,7 +181,7 @@ export function stats() {
 
   const funnel = FUNNEL.map((s) => ({
     stage: s,
-    count: rows.filter((r) => rank(r.status) >= rank(s)).length,
+    count: rows.filter((r) => effectiveRank(r) >= rank(s)).length,
   }));
 
   const group = (key) => {
